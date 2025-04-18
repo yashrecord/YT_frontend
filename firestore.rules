@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Thumbnails collection rules
+    match /thumbnails/{thumbnailId} {
+      // Allow reading all thumbnails if authenticated
+      allow read: if request.auth != null;
+      
+      // Allow creating if authenticated and setting their own userId
+      allow create: if request.auth != null && 
+                   request.resource.data.userId == request.auth.uid;
+      
+      // Allow deleting only their own thumbnails
+      allow delete: if request.auth != null && 
+                   get(/databases/$(database)/documents/thumbnails/$(thumbnailId)).data.userId == request.auth.uid;
+    }
+  }
+}
