@@ -139,17 +139,21 @@ const YouTubeThumbnail = () => {
     }
     
     try {
+      setIsLoading(prev => ({ ...prev, thumbnail: true }));
       await downloadThumbnail(url, filename);
       toast({
         title: "Success",
         description: "Thumbnail downloaded successfully",
       });
     } catch (error: any) {
+      console.error('Download error:', error);
       toast({
         title: "Download Failed",
         description: error.message || "Failed to download the thumbnail",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(prev => ({ ...prev, thumbnail: false }));
     }
   };
 

@@ -75,6 +75,7 @@ const CustomThumbnail = () => {
     }
     
     try {
+      setIsLoading(prev => ({ ...prev, thumbnail: true }));
       const filename = `custom-thumbnail-${Date.now()}.png`;
       await downloadThumbnail(url, filename);
       toast({
@@ -82,11 +83,14 @@ const CustomThumbnail = () => {
         description: "Thumbnail downloaded successfully",
       });
     } catch (error: any) {
+      console.error('Download error:', error);
       toast({
         title: "Download Failed",
         description: error.message || "Failed to download the thumbnail",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(prev => ({ ...prev, thumbnail: false }));
     }
   };
 

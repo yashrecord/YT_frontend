@@ -4,7 +4,7 @@ import { saveThumbnail } from './firebase-utils';
 import type { ThumbnailData } from './firebase';
 
 // API Configuration
-const API_BASE_URL = 'http://127.0.0.1:7860';
+const API_BASE_URL = 'https://flaskyt-production.up.railway.app';
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 30000; // 30 seconds
@@ -136,15 +136,21 @@ export const downloadThumbnail = async (url: string, filename: string): Promise<
     throw new Error('Invalid thumbnail URL');
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      signal: controller.signal
+    });
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Failed to download (HTTP ${response.status})`);
     }
     
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('image/')) {
-      throw new Error('Invalid image response from server');
+      throw new Error('Invalid image type received from server');
     }
 
     const blob = await response.blob();
@@ -156,15 +162,27 @@ export const downloadThumbnail = async (url: string, filename: string): Promise<
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = filename;
+    
+    // Use a more reliable way to trigger download
     document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
+    requestAnimationFrame(() => {
+      link.click();
+      requestAnimationFrame(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      });
+    });
+
   } catch (error) {
     if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Download timed out. Please try again.');
+      }
       throw error;
     }
     throw new Error('Failed to download thumbnail');
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

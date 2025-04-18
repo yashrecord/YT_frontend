@@ -39,6 +39,15 @@ const Library = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Loading state handling
+  if (authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   const formatDate = (timestamp: { seconds: number; nanoseconds: number }) => {
     if (!timestamp?.seconds) return 'Date not available';
     const date = new Date(timestamp.seconds * 1000);
@@ -47,27 +56,31 @@ const Library = () => {
 
   useEffect(() => {
     const fetchThumbnails = async () => {
-      if (authLoading) return;
-      
       if (!user) {
         navigate("/login");
         return;
       }
 
       try {
+        setIsLoading(true);
         const fetchedThumbnails = await getUserThumbnails(user.uid);
         setThumbnails(fetchedThumbnails as Thumbnail[]);
         setError("");
       } catch (err) {
-        setError("Failed to fetch thumbnails");
         console.error("Error fetching thumbnails:", err);
+        setError("Failed to fetch thumbnails. Please try again.");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load thumbnails. Please refresh the page.",
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchThumbnails();
-  }, [user, authLoading, navigate]);
+  }, [user, navigate, toast]);
 
   const handleDelete = async (thumbnail: Thumbnail) => {
     try {
@@ -88,6 +101,7 @@ const Library = () => {
 
   const handleDownload = async (thumbnail: Thumbnail) => {
     try {
+      setIsLoading(true); // Show loading state while downloading
       const filename = `thumbnail-${thumbnail.type}-${Date.now()}.png`;
       await downloadThumbnail(thumbnail.imageUrl, filename);
       toast({
@@ -95,11 +109,21 @@ const Library = () => {
         description: "Thumbnail downloaded successfully",
       });
     } catch (err) {
+      console.error("Download error:", err);
       toast({
         title: "Error",
-        description: "Failed to download thumbnail",
+        description: "Failed to download thumbnail. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Card click handler separated from download handler
+  const handleCardClick = (thumbnail: Thumbnail) => {
+    if (!isLoading) { // Prevent opening dialog while loading
+      setSelectedThumbnail(thumbnail);
     }
   };
 
@@ -136,7 +160,7 @@ const Library = () => {
               <Card 
                 key={thumbnail.id} 
                 className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => setSelectedThumbnail(thumbnail)}
+                onClick={() => handleCardClick(thumbnail)}
               >
                 <div className="aspect-video relative group">
                   <img
