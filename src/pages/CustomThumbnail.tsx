@@ -14,7 +14,7 @@ const CustomThumbnail = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [thumbnailStyle] = useState({
+  const [thumbnailStyle, setThumbnailStyle] = useState({
     style: "A minimalist tech thumbnail with dark background and neon accents, featuring modern typography and clean lines"
   });
   const [isLoading, setIsLoading] = useState({
@@ -113,7 +113,7 @@ const CustomThumbnail = () => {
                     </label>
                     <Textarea
                       value={thumbnailStyle.style}
-                      readOnly
+                      onChange={(e) => setThumbnailStyle({ style: e.target.value })}
                       className="w-full min-h-[100px]"
                     />
                   </div>
